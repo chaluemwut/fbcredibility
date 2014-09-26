@@ -1,0 +1,24 @@
+{
+  "manifest_version": 2,
+
+  "name": "FB credibility",
+  "description": "Measurement credibility on facebook",
+  "version": "2.0",
+
+  "content_scripts": [
+  {
+    "matches": ["https://www.facebook.com/*"],
+    "css": ["fbcredibility.css"],
+    "js": ["jquery.js", "fbcredibility.js"]
+    }
+  ],
+  "permissions": [
+    "tabs",
+    "storage",
+    "https://www.facebook.com/",
+    "https://www.fbcredibility.com/sdc/*"
+  ],
+  "web_accessible_resources": [
+      "jquery/images/*"
+  ]  
+}
