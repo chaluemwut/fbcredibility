@@ -1,9 +1,9 @@
 {
   "manifest_version": 2,
 
-  "name": "FB Credibility - JQuery",
+  "name": "FB Credibility",
   "description": "Measurement credibility on facebook by using Jquery",
-  "version": "2.1",
+  "version": "2.1.3",
 
   "content_scripts": [
   {

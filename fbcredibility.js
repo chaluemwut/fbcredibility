@@ -2,6 +2,7 @@
 var base_url = "https://www.fbcredibility.com/sdc/";
 var server_url = base_url+"fbgetcredit2";
 var feedback_url = base_url+"fbfeedback";
+var is_record_data = true;
 // var server_url = "https://lab.socialdatacomputing.com/sdc/";
 
 function createSourceButton(ref){
@@ -21,7 +22,30 @@ function createAssessmentButton(divId){
 	return ret
 }
 
-function createFBCredibilityDiv(divId, message) {
+function createFeatureDiv(divId, feature){
+	ret ='<div>';
+	ret += templateFeatureDiv('likes_'+divId, feature['likes']);
+	ret += templateFeatureDiv('comments_'+divId, feature['comments']);
+	ret += templateFeatureDiv('shares_'+divId, feature['shares']);
+	ret += templateFeatureDiv('url_'+divId, feature['url']);
+	ret += templateFeatureDiv('hashtag_'+divId, feature['hash_tag']);
+	ret += templateFeatureDiv('images_'+divId, feature['images']);
+	ret += templateFeatureDiv('vdo_'+divId, feature['vdo']);
+	ret += templateFeatureDiv('is_location_'+divId, feature['is_location']);
+	// ret += templateFeatureDiv('user_post_'+divId, feature['user_post']);
+	ret += '</div>';
+	return ret;
+}
+
+function templateFeatureDiv(dataId, data){
+	return '<input type="hidden" id="'+dataId+'"value="'+data+'"/>';
+}
+
+function templateFeatureDiv2(dataId, data){
+	return '<input type="text" id="'+dataId+'"value="'+data+'"/>';
+}
+
+function createFBCredibilityDiv(divId, message, feature) {
 	ret = '<div id=kku_'+divId+' style="position: relative; margin-top: 5px; width:100%; height:18px;">';
 	ret += '<div class="inline" style="position: relative; margin-top: 3px; color:#FF8000;">FB Credibility</div>';
 	// ret += '<img class="inline" id=img_'+divId+' src="https://dl.dropboxusercontent.com/u/7385478/waiting.gif"  width="20" height="20" alt="Loading"/>';
@@ -29,6 +53,7 @@ function createFBCredibilityDiv(divId, message) {
 	// ret += '<div id=fb_result_'+divId+' class="inline" style="position: relative; margin-top: 4px; margin-left: 10px;">: '+message+'</div>';
 	ret += '<div id=fb_result_'+divId+' class="inline" style="position: relative; margin-top: 4px; margin-left: 10px;">: </div>';
 	// ret += '<img src="chrome-extension://kpdmecaibnbaihjbghbikjbmihelikeg/scal1.png"></img>';
+	ret += createFeatureDiv(divId, feature);
 	ret += createAssessmentButton(divId);
 	ret += '</div>';
 	return ret;
@@ -207,6 +232,7 @@ function get_hash_tag(user_content){
 	var url_list = $(user_content).find("[class='_58cn']");
 	return url_list.length;
 }
+
 function get_content_url(user_content, user_content_img){
 	var url_list = $(user_content).find("a").not("[class='_58cn'],[class='see_more_link']");
 	return url_list.length;
@@ -224,6 +250,34 @@ function get_content_image(user_content, user_content_img){
 	return img_num.length-is_vdo.length;
 }
 
+function get_user_name_feedback(){
+	// fbxWelcomeBoxName
+	var user_name = $("a[class='fbxWelcomeBoxName']");
+	// console.log(user_name);
+	return user_name.text();
+}
+
+function get_user_post(clearfix){
+	// fwb fcg
+	var user_post_obj = $(clearfix).find("span[class='fwb fcg'] > a");
+	// console.log(user_post_obj.length);
+	// var t = 'test';
+	// $(user_post_obj).each(function(i, e){
+	// 	t = t+e;
+	// });
+
+	if(user_post_obj.length == 1) {
+		return user_post_obj.text();
+	} else if(user_post_obj.length == 2){
+		return user_post_obj.children().text();
+	}
+	var user_div_obj = $(clearfix).find("div[class='fwn fcg']");
+	// console.log(user_div_obj.text());
+	if (user_div_obj.length > 0){
+		var user_div_a = $(user_div_obj).find("a");
+		return user_div_a.text();
+	}
+}
 
 $(document).ready(function () {
 
@@ -244,42 +298,96 @@ $(document).ready(function () {
 			var out_data = 't:'+common[4]+' l:'+common[0]+
 			               ' c:'+common[1]+' s:'+common[2]+
 			               ' url:'+url_count+' has:'+hash_tag+' img:'+img_count+
-			               ' vdo:'+vdo_count;
+			               ' vdo:'+vdo_count+'user : '+get_user_post(clearfix);
+			var feature = {};
+			feature['likes'] = common[0];
+			feature['comments'] = common[1];
+			feature['shares'] = common[2];
+			feature['url'] = url_count;
+			feature['hash_tag'] = hash_tag;
+			feature['images'] = img_count;
+			feature['vdo'] = vdo_count;
+			feature['is_location'] = get_location_number(sub_stream);
+			// feature['user_feedback'] = get_user_name_feedback();
+			// feature['user_post'] = get_user_post();
 
 			if($(clearfix).find("[id^='kku_']").length){
-				// console.log('found');
+				// console.log('found');			
 			} else {
-				// console.log('link id '+link_id.attr('href'));
-				// var post_id = getObjId(link_id.attr('href'));
-				
-				clearfix.append(createFBCredibilityDiv(i, out_data));
+				clearfix.append(createFBCredibilityDiv(i, out_data, feature));
 
 				$("#feedback_yes_"+i).click(function(){
-					console.log('click feed back yes');
-					var urlCall = feedback_url+"?feedback=yes";
-					console.log('url '+urlCall);
+					var obj = $(this);
+					var ret_id_obj = obj.attr('id');
+					var ret_id = ret_id_obj.replace('feedback_yes_','');
+					var urlCall = '';
+					if (is_record_data){
+						var likes_ret = $("#likes_"+ret_id).attr('value');
+						var comments_ret = $("#comments_"+ret_id).attr('value');
+						var shares_ret = $("#shares_"+ret_id).attr('value');
+						var url_ret = $("#url_"+ret_id).attr('value');
+						var hashtag_ret = $("#hashtag_"+ret_id).attr('value');
+						var image_ret = $("#images_"+ret_id).attr('value');
+						var vdo_ret = $("#vdo_"+ret_id).attr('value');
+						var is_location_ret = $("#is_location_"+ret_id).attr('value');
+						var rating = $("#rating_"+ret_id).attr('value');
+						urlCall = feedback_url+"?feedback=yes&return_id="+ret_id+"&likes="+likes_ret+
+									"&rating="+rating+
+									"&comments="+comments_ret+"&shares="+shares_ret+"&url="+url_ret+"&hashtag="+hash_tag+
+									"&images="+image_ret+"&vdo="+vdo_ret+"&location="+is_location_ret+"&user_post="+
+									get_user_post(clearfix)+"&user_feed_back="+get_user_name_feedback()+
+									"&message="+user_content.text();
+					} else {
+						urlCall = feedback_url+"?feedback=yes&return_id="+ret_id;
+					}
+					// var urlCall = feedback_url+"?feedback=yes&return_id="+ret_id;
+					// console.log('url '+urlCall);
 					$.ajax({
 						type: "GET",
 						async: true,
 						url: urlCall,
 						withCredentials: true,
 						success: function(result){
-							console.log(result);
+							// console.log(result);
+							var ret_id = result['return_id'];
+							$('#assessment_div_'+ret_id).append('<span class="inline" style="position: relative; color:green; margin-top 5px; margin-left: 5px;">'+result['description']+'</span>');
 						}
 					});
 				});
 
 				$("#feedback_no_"+i).click(function(){
-					// console.log('click feed back no');
-					var urlCall = feedback_url+"?feedback=no";
-					console.log('url '+urlCall);
+					var obj = $(this);
+					var ret_id_obj = obj.attr('id');
+					var ret_id = ret_id_obj.replace('feedback_no_','');
+					var urlCall = '';
+					if (is_record_data){
+						var likes_ret = $("#likes_"+ret_id).attr('value');
+						var comments_ret = $("#comments_"+ret_id).attr('value');
+						var shares_ret = $("#shares_"+ret_id).attr('value');
+						var url_ret = $("#url_"+ret_id).attr('value');
+						var hashtag_ret = $("#hashtag_"+ret_id).attr('value');
+						var image_ret = $("#images_"+ret_id).attr('value');
+						var vdo_ret = $("#vdo_"+ret_id).attr('value');
+						var is_location_ret = $("#is_location_"+ret_id).attr('value');
+						var rating = $("#rating_"+ret_id).attr('value');
+						urlCall = feedback_url+"?feedback=no&return_id="+ret_id+"&likes="+likes_ret+
+									"&rating="+rating+
+									"&comments="+comments_ret+"&shares="+shares_ret+"&url="+url_ret+"&hashtag="+hash_tag+
+									"&images="+image_ret+"&vdo="+vdo_ret+"&location="+is_location_ret+"&user_post="+
+									get_user_post(clearfix)+"&user_feed_back="+get_user_name_feedback()+
+									"&message="+user_content.text();
+					} else {
+						urlCall = feedback_url+"?feedback=no&return_id="+ret_id;
+					}
 					$.ajax({
 						type: "GET",
 						async: true,
 						url: urlCall,
 						withCredentials: true,
 						success: function(result){
-							console.log(result);
+							// console.log(result);
+							var ret_id = result['return_id'];
+							$('#assessment_div_'+ret_id).append('<span class="inline" style="position: relative; color:green; margin-top 5px; margin-left: 5px;">'+result['description']+'</span>');
 						}
 					});
 				});	
@@ -300,11 +408,13 @@ $(document).ready(function () {
 						var ret_id = result['return_id'];
 						var divObj = $('#fb_result_'+ret_id);
 						divObj.attr('class', 'rating'+result['rating']);
+						var rating_div = templateFeatureDiv('rating_'+ret_id, result['rating']);
+						$("#kku_"+ret_id).append(rating_div);
 					}
-				});				
+				});
 			}
 		});
 	}, 3000);
  
 });
-console.log('end script');
+// console.log('end script');
